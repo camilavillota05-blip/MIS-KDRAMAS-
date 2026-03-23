@@ -43,6 +43,8 @@
       border-radius: 40px;
       cursor: pointer;
     }
+
+    /* 🟣 IMAGEN */
     .poster {
       width: 100%;
       max-height: 300px;
@@ -50,6 +52,7 @@
       border-radius: 20px;
       margin-bottom: 15px;
     }
+
     .drama {
       background: linear-gradient(135deg, #ffffff, #fce4ec);
       border-radius: 28px;
@@ -71,6 +74,7 @@
     .eliminar { background:#c62828; }
     .estrellas span {
       font-size: 28px;
+      cursor: pointer;
       color: #ccc;
     }
     .estrellas span.activa { color: #fbc02d; }
@@ -80,72 +84,175 @@
 
 <h1>🌸 Mi Registro de Dramas Coreanos 🌸</h1>
 
+<div class="formulario">
+  <h2 id="tituloForm">Agregar drama</h2>
+  <div class="grid">
+    <input id="nombreOriginal" placeholder="Nombre original" />
+    <input id="nombreEspanol" placeholder="Nombre en español" />
+    <input id="genero" placeholder="Género" />
+    <input id="episodios" type="number" placeholder="Episodios" />
+    <input id="clasificacionDrama" placeholder="Clasificación del drama" />
+
+    <!-- ⭐ CALIFICACIÓN -->
+    <div>
+      <label>Tu calificación</label>
+      <div class="estrellas">
+        <span onclick="setRating(1)">★</span>
+        <span onclick="setRating(2)">★</span>
+        <span onclick="setRating(3)">★</span>
+        <span onclick="setRating(4)">★</span>
+        <span onclick="setRating(5)">★</span>
+      </div>
+      <input type="hidden" id="clasificacionPersonal" />
+    </div>
+
+    <input id="anio" type="number" placeholder="Año" />
+    <input id="plataforma" placeholder="Plataforma" />
+
+    <!-- 🟣 NUEVO CAMPO IMAGEN -->
+    <input id="imagen" placeholder="URL de la imagen (portada)" />
+
+    <select id="estado">
+      <option value="">Estado</option>
+      <option>Viendo</option>
+      <option>Terminado</option>
+      <option>Pendiente</option>
+    </select>
+
+    <input id="fechaInicio" type="date" />
+    <input id="fechaFinal" type="date" />
+    <input id="periodoEmision" placeholder="Periodo de emisión" />
+  </div>
+
+  <textarea id="sinopsis" placeholder="Sinopsis"></textarea>
+  <button onclick="guardarDrama()">Guardar</button>
+</div>
+
 <div class="lista">
   <h2>Dramas registrados (A–Z)</h2>
   <div id="listaDramas"></div>
 </div>
 
 <script>
-let dramas = [
-  {
-    nombreOriginal: "Crash Landing on You",
-    nombreEspanol: "Aterrizaje de emergencia en tu corazón",
-    genero: "Romance, Drama",
-    episodios: 16,
-    clasificacionDrama: "13+",
-    clasificacionPersonal: 5,
-    anio: 2019,
-    plataforma: "Netflix",
-    estado: "Terminado",
-    fechaInicio: "",
-    fechaFinal: "",
-    periodoEmision: "2019-2020",
-    sinopsis: "Una heredera surcoreana cae en Corea del Norte y conoce a un oficial.",
-    imagen: "https://upload.wikimedia.org/wikipedia/en/5/5a/Crash_Landing_on_You_main_poster.jpg"
-  },
-  {
-    nombreOriginal: "Goblin",
-    nombreEspanol: "El guardián",
-    genero: "Fantasía, Romance",
-    episodios: 16,
-    clasificacionDrama: "13+",
-    clasificacionPersonal: 5,
-    anio: 2016,
-    plataforma: "Viki",
-    estado: "Terminado",
-    fechaInicio: "",
-    fechaFinal: "",
-    periodoEmision: "2016-2017",
-    sinopsis: "Un ser inmortal busca a su novia para romper su maldición.",
-    imagen: "https://upload.wikimedia.org/wikipedia/en/3/3d/Guardian_The_Lonely_and_Great_God.jpg"
+  let dramas = JSON.parse(localStorage.getItem('dramas')) || [];
+  let editIndex = null;
+
+  function ordenar() {
+    dramas.sort((a,b)=>a.nombreOriginal.localeCompare(b.nombreOriginal));
+    localStorage.setItem('dramas', JSON.stringify(dramas));
   }
-];
 
-function ordenar() {
-  dramas.sort((a,b)=>a.nombreOriginal.localeCompare(b.nombreOriginal));
-}
+  function setRating(v){
+    clasificacionPersonal.value=v;
+    document.querySelectorAll('.estrellas span').forEach((s,i)=>{
+      s.classList.toggle('activa', i < v);
+    });
+  }
 
-function render() {
-  const lista = document.getElementById("listaDramas");
-  lista.innerHTML = '';
-  ordenar();
+  function guardarDrama(){
+    const drama={
+      nombreOriginal:nombreOriginal.value,
+      nombreEspanol:nombreEspanol.value,
+      genero:genero.value,
+      episodios:episodios.value,
+      clasificacionDrama:clasificacionDrama.value,
+      clasificacionPersonal:clasificacionPersonal.value,
+      anio:anio.value,
+      plataforma:plataforma.value,
+      estado:estado.value,
+      fechaInicio:fechaInicio.value,
+      fechaFinal:fechaFinal.value,
+      periodoEmision:periodoEmision.value,
+      sinopsis:sinopsis.value,
+      imagen: imagen.value // 🟣 NUEVO
+    };
 
-  dramas.forEach(d => {
-    const div = document.createElement('div');
-    div.className = 'drama';
+    if(!drama.nombreOriginal){ alert('Nombre obligatorio'); return; }
 
-    div.innerHTML = `
-      <img src="${d.imagen}" class="poster">
-      <div class="titulo">${d.nombreOriginal}</div>
-      <div class="sub">${d.genero} · ${d.anio}</div>
-      <div class="sinopsis">${d.sinopsis}</div>
-    `;
+    if(editIndex!==null){
+      dramas[editIndex]=drama;
+      editIndex=null;
+      tituloForm.textContent='Agregar drama';
+    } else {
+      dramas.push(drama);
+    }
 
-    lista.appendChild(div);
-  });
-}
+    ordenar(); limpiar(); render();
+  }
 
-render();
+  function editarDrama(i){
+    const d=dramas[i];
+    editIndex=i;
+    tituloForm.textContent='Editar drama';
+
+    nombreOriginal.value=d.nombreOriginal;
+    nombreEspanol.value=d.nombreEspanol;
+    genero.value=d.genero;
+    episodios.value=d.episodios;
+    clasificacionDrama.value=d.clasificacionDrama;
+    setRating(d.clasificacionPersonal||0);
+    anio.value=d.anio;
+    plataforma.value=d.plataforma;
+    estado.value=d.estado;
+    fechaInicio.value=d.fechaInicio;
+    fechaFinal.value=d.fechaFinal;
+    periodoEmision.value=d.periodoEmision;
+    sinopsis.value=d.sinopsis;
+    imagen.value=d.imagen; // 🟣 NUEVO
+  }
+
+  function eliminarDrama(i){
+    if(confirm('¿Eliminar este drama?')){
+      dramas.splice(i,1);
+      ordenar();
+      render();
+    }
+  }
+
+  function limpiar(){
+    document.querySelectorAll('input, textarea').forEach(e=>e.value='');
+    estado.value='';
+    document.querySelectorAll('.estrellas span').forEach(s=>s.classList.remove('activa'));
+  }
+
+  function render() {
+    listaDramas.innerHTML = '';
+    let letraActual = '';
+
+    dramas.forEach((d, i) => {
+      const letra = (d.nombreOriginal || '').charAt(0).toUpperCase();
+
+      if (letra !== letraActual) {
+        letraActual = letra;
+        const separador = document.createElement('div');
+        separador.innerHTML = `<h3>${letra}</h3>`;
+        listaDramas.appendChild(separador);
+      }
+
+      const div = document.createElement('div');
+      div.className = 'drama';
+
+      div.innerHTML = `
+        ${d.imagen ? `<img src="${d.imagen}" class="poster">` : ''}
+        <div class="titulo">${d.nombreOriginal} (${d.nombreEspanol || ''})</div>
+        <div class="sub">${d.genero} · ${d.anio} · ${d.plataforma}</div>
+        <div>📺 Episodios: ${d.episodios || '—'}</div>
+        <div>🔞 Clasificación: ${d.clasificacionDrama || '—'}</div>
+        <div class="estrellas">${[1,2,3,4,5].map(n => `<span class="${n <= (d.clasificacionPersonal || 0) ? 'activa' : ''}">★</span>`).join('')}</div>
+        <div>📌 Estado: ${d.estado || '—'}</div>
+        <div>🗓️ ${d.fechaInicio || '—'} → ${d.fechaFinal || '—'}</div>
+        <div>📡 Emisión: ${d.periodoEmision || '—'}</div>
+        <div class="sinopsis">${d.sinopsis || ''}</div>
+        <div class="acciones">
+          <button class="editar" onclick="editarDrama(${i})">Editar</button>
+          <button class="eliminar" onclick="eliminarDrama(${i})">Eliminar</button>
+        </div>`;
+
+      listaDramas.appendChild(div);
+    });
+  }
+
+  ordenar(); render();
 </script>
 
 </body>
